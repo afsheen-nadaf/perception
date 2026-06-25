@@ -5,21 +5,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Client()
+_client = None
 
-def init_client():
-    global client
-    client = Client()
-    try:
-        client.login(os.getenv("BLUESKY_HANDLE"), os.getenv("BLUESKY_APP_PASSWORD"))
-        client.request.timeout = 30.0
+def get_client():
+    global _client
+    if _client is None:
+        _client = Client()
+        _client.login(os.getenv("BLUESKY_HANDLE"), os.getenv("BLUESKY_APP_PASSWORD"))
+        _client.request.timeout = 30.0
         print("✅ Successfully authenticated with Bluesky AT Protocol.")
-    except Exception as e:
-        print(f"❌ Failed to authenticate with Bluesky: {e}")
-        raise
+    return _client
 
 def fetch_bluesky_posts(topic, limit=200):
     print(f"=== DEBUG: Searching Bluesky for topic: '{topic}' ===")
+    client = get_client()
     posts = []
     cursor = None
 

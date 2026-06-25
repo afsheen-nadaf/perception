@@ -3,15 +3,17 @@ from datetime import datetime, timezone
 from atproto import Client, Request
 from httpx import Timeout
 
-# 1. INITIALIZE ONCE WITH CUSTOM TIMEOUT CONFIGURATION
-# We scale the timeout window from 5.0 seconds to 30.0 seconds to prevent network drops
-custom_request = Request(timeout=Timeout(30.0))
-client = Client(request=custom_request)
+# 1. INITIALIZE ONCE (Global Scope)
+client = Client()
 
-# Authenticate globally once to avoid endpoint spam rate limits
 try:
+    # Authenticate with Bluesky first
     client.login(os.getenv("BLUESKY_HANDLE"), os.getenv("BLUESKY_APP_PASSWORD"))
-    print("✅ Successfully authenticated with Bluesky AT Protocol (Custom Timeouts Armed).")
+    
+    # Securely set the request timeout window directly on the logged-in client state
+    client.request.timeout = 30.0
+    
+    print("✅ Successfully authenticated with Bluesky AT Protocol (Timeouts Armed).")
 except Exception as e:
     print(f"❌ Failed to authenticate with Bluesky: {e}")
 

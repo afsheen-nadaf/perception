@@ -1,26 +1,21 @@
 import os
 from datetime import datetime, timezone
-from atproto import Client, Request
-from httpx import Timeout
+from atproto import Client
 
-# 1. INITIALIZE ONCE (Global Scope)
-client = Client()
-
-try:
-    # Authenticate with Bluesky first
-    client.login(os.getenv("BLUESKY_HANDLE"), os.getenv("BLUESKY_APP_PASSWORD"))
-    
-    # Securely set the request timeout window directly on the logged-in client state
-    client.request.timeout = 30.0
-    
-    print("✅ Successfully authenticated with Bluesky AT Protocol (Timeouts Armed).")
-except Exception as e:
-    print(f"❌ Failed to authenticate with Bluesky: {e}")
-
-
-# 2. FETCH FUNCTION
 def fetch_bluesky_posts(topic, limit=200):
     print(f"=== DEBUG: Searching Bluesky for topic: '{topic}' ===")
+    
+    # 1. INITIALIZE AND AUTHENTICATE INSIDE WORKER CONTEXT
+    client = Client()
+    try:
+        client.login(os.getenv("BLUESKY_HANDLE"), os.getenv("BLUESKY_APP_PASSWORD"))
+        client.request.timeout = 30.0
+        print("✅ Worker authenticated successfully with Bluesky.")
+    except Exception as e:
+        print(f"❌ Worker failed to authenticate with Bluesky: {e}")
+        raise
+
+    # 2. FETCH ROUTINE
     posts = []
     cursor = None
     
@@ -53,7 +48,7 @@ def fetch_bluesky_posts(topic, limit=200):
         except Exception as e:
             print(f"Error during Bluesky fetch: {e}")
             if not posts:
-                raise  # Let app.py handle the stack track cleanly
+                raise
             break 
             
     return posts

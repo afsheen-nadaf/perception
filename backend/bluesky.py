@@ -5,20 +5,52 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BLUESKY_HANDLE = os.getenv("BLUESKY_HANDLE")
-BLUESKY_APP_PASSWORD = os.getenv("BLUESKY_APP_PASSWORD")
-
-print(f"DEBUG: BLUESKY_HANDLE = {BLUESKY_HANDLE}")  # add this temporarily
-print(f"DEBUG: BLUESKY_APP_PASSWORD = {'SET' if BLUESKY_APP_PASSWORD else 'NOT SET'}")
-
-if not BLUESKY_HANDLE or not BLUESKY_APP_PASSWORD:
-    raise RuntimeError("BLUESKY_HANDLE or BLUESKY_APP_PASSWORD env vars are not set!")
-
+# Initialize once at module level
 client = Client()
+
 try:
-    client.login(BLUESKY_HANDLE, BLUESKY_APP_PASSWORD)
+    client.login(os.getenv("BLUESKY_HANDLE"), os.getenv("BLUESKY_APP_PASSWORD"))
     client.request.timeout = 30.0
     print("✅ Successfully authenticated with Bluesky AT Protocol.")
 except Exception as e:
     print(f"❌ Failed to authenticate with Bluesky: {e}")
-    raise
+
+
+def fetch_bluesky_posts(topic, limit=200):
+    print(f"=== DEBUG: Searching Bluesky for topic: '{topic}' ===")
+    posts = []
+    cursor = None
+
+    while len(posts) < limit:
+        current_limit = min(100, limit - len(posts))
+        params = {'q': str(topic), 'limit': current_limit}
+
+        if cursor:
+            params['cursor'] = cursor
+
+        try:
+            response = client.app.bsky.feed.search_posts(params)
+            if not response.posts:
+                break
+
+            for post in response.posts:
+                if not post.record or not hasattr(post.record, 'text') or post.record.text is None:
+                    continue
+
+                posts.append({
+                    "id": str(post.uri.split("/")[-1]),
+                    "text": str(post.record.text),
+                    "created_utc": str(post.record.created_at if hasattr(post.record, 'created_at') else datetime.now(timezone.utc).isoformat())
+                })
+
+            cursor = response.cursor
+            if not cursor:
+                break
+
+        except Exception as e:
+            print(f"Error during Bluesky fetch: {e}")
+            if not posts:
+                raise
+            break
+
+    return posts

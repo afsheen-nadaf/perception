@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { BrainCircuit, Clock, Cpu, ChevronsUpDown, LogOut, User } from "lucide-react"
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore"
+import { collection, query, orderBy, limit, onSnapshot, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
@@ -24,7 +24,7 @@ interface SearchHistoryItem {
 interface AppSidebarProps {
   onHistoryClick?: (topic: string) => void
   latency?: number | null
-  currentTopic?: string // Added to dynamically highlight the active search item
+  currentTopic?: string 
 }
 
 export function AppSidebar({ onHistoryClick, latency, currentTopic }: AppSidebarProps) {
@@ -32,16 +32,17 @@ export function AppSidebar({ onHistoryClick, latency, currentTopic }: AppSidebar
   const [recentSearches, setRecentSearches] = useState<SearchHistoryItem[]>([])
 
   useEffect(() => {
+    // Prevent setting up a listener if there is no logged-in user context
     if (!user?.uid) return
 
-    // 1. Point to your updated global collection name
     const historyRef = collection(db, "searches")
     
-    // 2. Query by your fresh timestamp property
+    // Explicit user separation: strict filtering by user.uid
     const q = query(
       historyRef,
+      where("userId", "==", user.uid),
       orderBy("searched_at", "desc"),
-      limit(7) // Bumped up slightly for a richer sidebar view
+      limit(7) 
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -51,7 +52,6 @@ export function AppSidebar({ onHistoryClick, latency, currentTopic }: AppSidebar
         return {
           topic: topicName,
           volume: data.metrics?.positive ? `${data.metrics.positive}% 🟢` : "Live", 
-          // Dynamically check if this item is the currently selected search path
           active: currentTopic?.toLowerCase() === topicName.toLowerCase(),
         }
       })
@@ -213,4 +213,3 @@ export function AppSidebar({ onHistoryClick, latency, currentTopic }: AppSidebar
     </aside>
   )
 }
- {/* This is a comment inside TSX markup */}

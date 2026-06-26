@@ -69,8 +69,10 @@ def analyze():
     if request.method == 'POST':
         data = request.get_json()
         topic = data.get('topic') if data else None
+        user_id = data.get('userId') if data else None
     else:
         topic = request.args.get('topic')
+        user_id = request.args.get('userId')
 
     if not topic:
         return jsonify({"error": "No topic provided"}), 400
@@ -78,6 +80,7 @@ def analyze():
     six_hours_ago = datetime.now(timezone.utc) - timedelta(hours=6)
     cached_searches = db.collection("searches") \
         .where("topic", "==", topic) \
+        .where("userId", "==", user_id) \
         .where("searched_at", ">=", six_hours_ago) \
         .order_by("searched_at", direction=firestore.Query.DESCENDING) \
         .limit(1).get()
@@ -176,7 +179,8 @@ def analyze():
 
     # 2. Save/Overwrite the top-level topic document 
     search_ref.set({
-        "topic": topic,                       # Retains original casing ("Taylor Swift")
+        "topic": topic,  # Retains original casing ("Taylor Swift")
+        "userId": user_id,                       
         "searched_at": datetime.now(timezone.utc),  # Fresh timestamp pushes it to the top!
         "polarization_score": pol_score,
         "metrics": summary,

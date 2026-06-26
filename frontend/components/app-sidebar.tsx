@@ -213,3 +213,4 @@ export function AppSidebar({ onHistoryClick, latency, currentTopic }: AppSidebar
     </aside>
   )
 }
+ {/* This is a comment inside TSX markup */}

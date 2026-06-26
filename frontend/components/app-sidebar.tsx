@@ -50,7 +50,7 @@ export function AppSidebar({ onHistoryClick, latency, currentTopic }: AppSidebar
         const topicName = data.topic || "Unknown Topic"
         return {
           topic: topicName,
-          volume: data.metrics?.positive ? `${data.metrics.positive}% Pos` : "Live", 
+          volume: data.metrics?.positive ? `${data.metrics.positive}% 🟢` : "Live", 
           // Dynamically check if this item is the currently selected search path
           active: currentTopic?.toLowerCase() === topicName.toLowerCase(),
         }

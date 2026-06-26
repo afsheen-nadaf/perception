@@ -49,14 +49,14 @@ _spark_session = None
 
 def get_spark_session():
     """
-    Initializes a highly optimized, low-memory Spark Session 
-    tailored specifically to survive inside constrained container environments.
+    Initializes an optimized Spark Session with a safe memory footprint 
+    to successfully pass JVM validation checks on Hugging Face Spaces.
     """
     return SparkSession.builder \
         .appName("PerceptionAIProcessor") \
         .master("local[1]") \
-        .config("spark.driver.memory", "180m") \
-        .config("spark.executor.memory", "180m") \
+        .config("spark.driver.memory", "1g") \
+        .config("spark.executor.memory", "1g") \
         .config("spark.driver.extraJavaOptions", "-XX:+UseSerialGC") \
         .config("spark.executor.extraJavaOptions", "-XX:+UseSerialGC") \
         .config("spark.sql.shuffle.partitions", "2") \

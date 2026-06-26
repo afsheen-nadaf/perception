@@ -16,7 +16,7 @@ import traceback
 load_dotenv()
 
 from database import db, firestore
-from bluesky import fetch_bluesky_posts, init_client
+from bluesky import fetch_bluesky_posts
 from processor import preprocess_posts_with_spark
 from sentiment import score_sentiment_batch, calculate_polarization
 
@@ -31,17 +31,17 @@ CORS(app, origins=[
 ])
 
 
-_client_initialized = False
+# _client_initialized = False
 
-@app.before_request
-def ensure_bluesky_client():
-    global _client_initialized
-    if not _client_initialized:
-        try:
-            init_client()
-            _client_initialized = True
-        except Exception as e:
-            print(f"Failed to initialize Bluesky client: {e}")
+# @app.before_request
+# def ensure_bluesky_client():
+#    global _client_initialized
+ #   if not _client_initialized:
+  #      try:
+   #         init_client()
+    #        _client_initialized = True
+     #   except Exception as e:
+      #      print(f"Failed to initialize Bluesky client: {e}")
 
 def build_time_trend(posts):
     buckets = defaultdict(lambda: {"positive": 0, "negative": 0})

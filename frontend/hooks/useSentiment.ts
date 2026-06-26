@@ -29,7 +29,7 @@ export const useSentiment = () => {
   const [error, setError] = useState<string | null>(null);
   const [latency, setLatency] = useState<number | null>(null);
 
-  const analyzeTopic = useCallback(async (topic: string) => {
+  const analyzeTopic = useCallback(async (topic: string, userId: string | undefined) => {
     if (!topic.trim()) return;
 
     setLoading(true);
@@ -43,7 +43,10 @@ export const useSentiment = () => {
       const response = await fetch(`${baseUrl}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic })
+        body: JSON.stringify({ 
+          topic: topic,
+          userId: userId
+        })
       });
 
       const end = performance.now();

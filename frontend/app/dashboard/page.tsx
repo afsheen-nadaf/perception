@@ -41,7 +41,7 @@ export default function DashboardPage() {
     if (!searchTerm.trim()) return
 
     // Trigger the Python backend to start analyzing
-    analyzeTopic(searchTerm)
+    analyzeTopic(searchTerm, user?.uid)
 
     // Save a tiny log to the user's personal sidebar history in Firestore
     try {
@@ -59,7 +59,7 @@ export default function DashboardPage() {
   // 4. Handle clicks from the Recent Searches sidebar
   const handleHistoryClick = (topic: string) => {
     setSearchTerm(topic) // Update the input field visually
-    analyzeTopic(topic)  // Fire the API (which will hit your Python cache!)
+    analyzeTopic(topic, user?.uid)  // Fire the API (which will hit your Python cache!)
   }
 
   // 5. Safely extract data with fallbacks

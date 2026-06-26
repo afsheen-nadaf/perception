@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Perception AI — Social Sentiment Analytics',
   description:
-    'AI-powered social media sentiment analysis and polarization insights for data scientists.',
+    'AI-powered social media sentiment analysis and polarization insights.',
   generator: 'v0.app',
   icons: {
     icon: [

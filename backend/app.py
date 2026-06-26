@@ -16,12 +16,13 @@ import traceback
 load_dotenv()
 
 from database import db, firestore
-from bluesky import fetch_bluesky_posts
+from bluesky import fetch_bluesky_posts, init_client
 from processor import preprocess_posts_with_spark
 from sentiment import score_sentiment_batch, calculate_polarization
 
 # --- NEW ML ENGINE IMPORT ---
 from nlp_engine import extract_advanced_keywords, select_diverse_sample_posts
+
 
 app = Flask(__name__)
 CORS(app, origins=[
@@ -29,6 +30,18 @@ CORS(app, origins=[
     "https://perception-eosin.vercel.app"
 ])
 
+
+_client_initialized = False
+
+@app.before_request
+def ensure_bluesky_client():
+    global _client_initialized
+    if not _client_initialized:
+        try:
+            init_client()
+            _client_initialized = True
+        except Exception as e:
+            print(f"Failed to initialize Bluesky client: {e}")
 
 def build_time_trend(posts):
     buckets = defaultdict(lambda: {"positive": 0, "negative": 0})
@@ -90,7 +103,7 @@ def analyze():
         })
 
     try:
-        raw_posts = fetch_bluesky_posts(topic, limit=200)
+        raw_posts = fetch_bluesky_posts(topic, limit=400)
     except Exception as e:
         print("\n=== HIDDEN BLUESKY ERROR ===")
         traceback.print_exc()
@@ -157,28 +170,39 @@ def analyze():
     pol_score = calculate_polarization(pos, neg, neu)
     time_trend = build_time_trend(processed_posts)
 
-    search_ref = db.collection("searches").document()
+    # 1. Normalize the document ID to the lowercased topic name
+    normalized_id = topic.strip().lower()
+    search_ref = db.collection("searches").document(normalized_id)
+
+    # 2. Save/Overwrite the top-level topic document 
     search_ref.set({
-        "topic": topic,
-        "searched_at": datetime.now(timezone.utc),
+        "topic": topic,                       # Retains original casing ("Taylor Swift")
+        "searched_at": datetime.now(timezone.utc),  # Fresh timestamp pushes it to the top!
         "polarization_score": pol_score,
         "metrics": summary,
         "top_keywords": keywords_dict
     })
 
+    # 3. Clean up older sub-collection posts to avoid mixing old data with new data
+    old_posts = search_ref.collection("posts").get()
+    delete_batch = db.batch()
+    for doc in old_posts:
+        delete_batch.delete(doc.reference)
+    delete_batch.commit()
+
+    # 4. Commit the new batch of processed posts (Up to 400 fits safely under the 500 batch limit!)
     batch = db.batch()
-    # Ensure we save the processed posts properly to Firestore
     for p in processed_posts:
         p_doc_ref = search_ref.collection("posts").document(p["id"])
         batch.set(p_doc_ref, p)
     batch.commit()
 
     return jsonify({
-        "searchId": search_ref.id,
+        "searchId": search_ref.id,            # This will now be the clean name string!
         "metrics": summary,
         "polarization_score": pol_score,
         "top_keywords": keywords_dict,
-        "sample_posts": diverse_sample_posts, # Injecting the diverse ML posts here
+        "sample_posts": diverse_sample_posts,
         "time_trend": time_trend,
         "cached": False
     })
